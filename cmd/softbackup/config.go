@@ -17,9 +17,10 @@ type Config struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	} `json:"connection"`
-	Destination struct {
-		Path   string `json:"path"`
-	} `json:"destination"`
+	Paths struct {
+		Backup string `json:"backup"`
+		Log    string `json:"log"`
+	} `json:"paths"`
 	Databases []string `json:"databases"`
 }
 
