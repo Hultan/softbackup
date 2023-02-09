@@ -23,6 +23,8 @@ var (
 	config *Config
 )
 
+var servers map[string]Server
+
 func main() {
 	// Load config file
 	config = &Config{}
@@ -31,6 +33,12 @@ func main() {
 		fmt.Printf("Failed to open config file! ('%s')", constConfigPath)
 		fmt.Println(err)
 		os.Exit(errorOpenConfig)
+	}
+
+	// Create server map
+	servers = make(map[string]Server, len(config.Servers))
+	for _, server := range config.Servers {
+		servers[server.Name] = server
 	}
 
 	fw = framework.NewFramework()
@@ -50,12 +58,19 @@ func main() {
 	logger.Info.Println()
 	logger.Info.Println("Configuration:")
 	logger.Info.Println()
+	logger.Info.Printf("Servers to backup: \n")
+	for _, server := range config.Servers {
+		logger.Info.Printf("\t%s\n", server)
+	}
+	logger.Info.Println()
 	logger.Info.Printf("Databases to backup: \n")
 	for _, database := range config.Databases {
 		logger.Info.Printf("\t%s\n", database)
 	}
-	logger.Info.Printf("Backup destination : %s\n", config.Paths.Backup)
-	logger.Info.Printf("Log destination    : %s\n", config.Paths.Log)
+	logger.Info.Println()
+	logger.Info.Printf("Paths: \n")
+	logger.Info.Printf("\tBackup : %s\n", config.Paths.Backup)
+	logger.Info.Printf("\tLog    : %s\n", config.Paths.Log)
 	logger.Info.Println()
 
 	for _, database := range config.Databases {
@@ -77,7 +92,10 @@ func main() {
 func backup(database Database, rootBackupPath string) (string, error) {
 	backupFile := fmt.Sprintf("%s_%s.sql", database.Database, time.Now().Local().Format(constDateLayoutBackup))
 	backupPath := path.Join(rootBackupPath, backupFile)
-	command, logCommand := getCommand(database, backupPath)
+
+	server := servers[database.Server]
+	command, logCommand := getCommand(server, database, backupPath)
+
 	// Make sure password is not exposed in log files
 	logger.Info.Printf("Executing command : /bin/bash -c %s\n", logCommand)
 	cmd := exec.Command("/bin/bash", "-c", command)
@@ -89,23 +107,25 @@ func backup(database Database, rootBackupPath string) (string, error) {
 	return "", nil
 }
 
-func getCommand(database Database, backupPath string) (command string, logCommand string) {
-	if database.Password == "" {
+func getCommand(server Server, database Database, backupPath string) (command string, logCommand string) {
+	if server.Password == "" {
 		command = fmt.Sprintf(
-			"mysqldump --host %s -P 3306 -u per %s > %s", database.Server, database.Database, backupPath,
+			"mysqldump --host %s -P %s -u %s %s > %s",
+			server.Address, server.Port, server.UserName, database.Database, backupPath,
 		)
 		logCommand = command
 	} else {
-		password, err := fw.Crypto.Decrypt(database.Password)
+		password, err := fw.Crypto.Decrypt(server.Password)
 		if err != nil {
 			panic(err)
 		}
 		command = fmt.Sprintf(
-			"mysqldump --host %s -P 3306 -p%s -u per %s > %s", database.Server, password, database.Database,
-			backupPath,
+			"mysqldump --host %s -P %s -p%s -u %s %s > %s",
+			server.Address, server.Port, server.UserName, password, database.Database, backupPath,
 		)
 		logCommand = fmt.Sprintf(
-			"mysqldump --host %s -P 3306 -p****** -u per %s > %s", database.Server, database.Database, backupPath,
+			"mysqldump --host %s -P %s -p****** -u %s %s > %s",
+			server.Address, server.Port, server.UserName, database.Database, backupPath,
 		)
 	}
 	return

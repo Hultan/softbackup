@@ -15,32 +15,44 @@ type Config struct {
 		Backup string `json:"backup"`
 		Log    string `json:"log"`
 	} `json:"paths"`
+	Servers   []Server   `json:"servers"`
 	Databases []Database `json:"databases"`
 }
 
 type Database struct {
 	Server   string `json:"server"`
-	Password string `json:"password"`
 	Database string `json:"database"`
 }
 
-func (d Database) String() string {
-	return fmt.Sprintf("%s/%s", d.Server, d.Database)
+type Server struct {
+	Name     string `json:"name"`
+	Address  string `json:"address"`
+	UserName string `json:"username"`
+	Password string `json:"password"`
+	Port     string `json:"port"`
 }
 
-// Load : Loads a SoftTube configuration file
+func (s Server) String() string {
+	return fmt.Sprintf("%-10s: %-13s (port:%s, user:%s)", s.Name, s.Address, s.Port, s.UserName)
+}
+
+func (d Database) String() string {
+	return fmt.Sprintf("%-10s: %s", d.Server, d.Database)
+}
+
+// Load : Loads a SoftBackup configuration file
 func (config *Config) Load() error {
 	// Get the path to the config file
-	path := getConfigPath()
+	configPath := getConfigPath()
 
 	// Make sure the file exists
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		errorMessage := fmt.Sprintf("settings file is missing (%s)", constConfigPath)
 		return errors.New(errorMessage)
 	}
 
 	// Open config file
-	configFile, err := os.Open(path)
+	configFile, err := os.Open(configPath)
 
 	// Handle errors
 	if err != nil {
@@ -55,37 +67,7 @@ func (config *Config) Load() error {
 	return nil
 }
 
-// Save : Saves a SoftTube configuration file
-func (config *Config) Save(mode string) {
-	// Get the path to the config file
-	path := getConfigPath()
-
-	// Open config file
-	configFile, err := os.OpenFile(path, os.O_TRUNC|os.O_WRONLY, 0644)
-
-	// Handle errors
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	defer configFile.Close()
-
-	// Create JSON from config object
-	data, err := json.MarshalIndent(config, "", "\t")
-
-	// Handle errors
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Write the data
-	configFile.Write(data)
-}
-
 // Get path to the config file
-// Mode = "test" returns test config path
-// otherwise returns normal config path
 func getConfigPath() string {
 	home := getHomeDirectory()
 	configPath := constConfigPath
