@@ -120,11 +120,11 @@ func getCommand(server Server, database Database, backupPath string) (command st
 			panic(err)
 		}
 		command = fmt.Sprintf(
-			"mysqldump --host %s -P %s -p%s -u %s %s > %s",
+			"mysqldump --host %s -P %s -u %s -p%s %s > %s",
 			server.Address, server.Port, server.UserName, password, database.Database, backupPath,
 		)
 		logCommand = fmt.Sprintf(
-			"mysqldump --host %s -P %s -p****** -u %s %s > %s",
+			"mysqldump --host %s -P %s -u %s -p****** %s > %s",
 			server.Address, server.Port, server.UserName, database.Database, backupPath,
 		)
 	}
