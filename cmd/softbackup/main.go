@@ -50,9 +50,10 @@ func main() {
 	logger.Info.Println()
 	logger.Info.Println("Configuration:")
 	logger.Info.Println()
-	logger.Info.Printf("Server             : %s\n", config.Connection.Server)
-	logger.Info.Printf("User               : %s\n", config.Connection.Username)
-	logger.Info.Printf("Databases to backup: %s\n", config.Databases)
+	logger.Info.Printf("Databases to backup: \n")
+	for _, database := range config.Databases {
+		logger.Info.Printf("\t%s\n", database)
+	}
 	logger.Info.Printf("Backup destination : %s\n", config.Paths.Backup)
 	logger.Info.Printf("Log destination    : %s\n", config.Paths.Log)
 	logger.Info.Println()
@@ -73,15 +74,39 @@ func main() {
 }
 
 // Backs up a mysql database
-func backup(database, rootBackupPath string) (string, error) {
-	backupFile := fmt.Sprintf("%s_%s.sql", database, time.Now().Local().Format(constDateLayoutBackup))
+func backup(database Database, rootBackupPath string) (string, error) {
+	backupFile := fmt.Sprintf("%s_%s.sql", database.Database, time.Now().Local().Format(constDateLayoutBackup))
 	backupPath := path.Join(rootBackupPath, backupFile)
-	command := fmt.Sprintf("mysqldump -u per %s > %s", database, backupPath)
-	logger.Info.Printf("Executing command : /bin/bash -c %s\n", command)
-	bytes, err := exec.Command("/bin/bash", "-c", command).Output()
+	command, logCommand := getCommand(database, backupPath)
+	// Make sure password is not exposed in log files
+	logger.Info.Printf("Executing command : /bin/bash -c %s\n", logCommand)
+	cmd := exec.Command("/bin/bash", "-c", command)
+	bytes, err := cmd.CombinedOutput()
 	if err != nil {
 		return string(bytes), err
 	}
 
 	return "", nil
+}
+
+func getCommand(database Database, backupPath string) (command string, logCommand string) {
+	if database.Password == "" {
+		command = fmt.Sprintf(
+			"mysqldump --host %s -P 3306 -u per %s > %s", database.Server, database.Database, backupPath,
+		)
+		logCommand = command
+	} else {
+		password, err := fw.Crypto.Decrypt(database.Password)
+		if err != nil {
+			panic(err)
+		}
+		command = fmt.Sprintf(
+			"mysqldump --host %s -P 3306 -p%s -u per %s > %s", database.Server, password, database.Database,
+			backupPath,
+		)
+		logCommand = fmt.Sprintf(
+			"mysqldump --host %s -P 3306 -p****** -u per %s > %s", database.Server, database.Database, backupPath,
+		)
+	}
+	return
 }

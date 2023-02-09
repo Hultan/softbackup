@@ -11,17 +11,21 @@ import (
 
 // Config for the database-backup program
 type Config struct {
-	Connection struct {
-		Server   string `json:"server"`
-		Port     int    `json:"port"`
-		Username string `json:"username"`
-		Password string `json:"password"`
-	} `json:"connection"`
 	Paths struct {
 		Backup string `json:"backup"`
 		Log    string `json:"log"`
 	} `json:"paths"`
-	Databases []string `json:"databases"`
+	Databases []Database `json:"databases"`
+}
+
+type Database struct {
+	Server   string `json:"server"`
+	Password string `json:"password"`
+	Database string `json:"database"`
+}
+
+func (d Database) String() string {
+	return fmt.Sprintf("%s/%s", d.Server, d.Database)
 }
 
 // Load : Loads a SoftTube configuration file
