@@ -1,6 +1,6 @@
 module github.com/Hultan/Softbackup
 
-go 1.17
+go 1.19
 
 require github.com/hultan/softteam v1.3.1
 
