@@ -2,10 +2,7 @@ module github.com/Hultan/Softbackup
 
 go 1.19
 
-require github.com/hultan/softteam v1.3.3
-
 require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/gotk3/gotk3 v0.6.1 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	github.com/hultan/crypto v1.0.1
+	github.com/hultan/logger v1.0.1
 )
