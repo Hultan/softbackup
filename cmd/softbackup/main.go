@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	applicationVersion    = "1.0.0"
+	applicationVersion    = "1.0.1"
 	constDateLayoutBackup = "20060102_0304"
 	constConfigPath       = "/.config/softteam/softbackup/softbackup.config"
 	errorOpenConfig       = 1
@@ -102,7 +102,11 @@ func main() {
 
 // Backs up a mysql database
 func backup(database Database, rootBackupPath string) (string, error) {
-	backupFile := fmt.Sprintf("%s_%s.sql", database.Database, time.Now().Local().Format(constDateLayoutBackup))
+	backupFile := fmt.Sprintf("%s_%s_%s.sql",
+		database.Server,
+		database.Database,
+		time.Now().Local().Format(constDateLayoutBackup))
+
 	backupPath := path.Join(rootBackupPath, backupFile)
 
 	server := servers[database.Server]
